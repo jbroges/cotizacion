@@ -123,7 +123,7 @@ Crear los structs y métodos exportables en Go (SaveSettings, GetClients, Create
 - [x] Phase 3: React UI Foundation
 Configurar Tailwind CSS, layout principal (Sidebar + Main Content Area) y crear componentes atómicos reusables (Button, Input, Modal, DataTable).
 
-- [ ] Phase 4: Settings & Clients Modules
+- [x] Phase 4: Settings & Clients Modules
 Desarrollar el formulario de configuración empresarial (con soporte para subida de logo) y el CRUD completo del directorio de clientes en el frontend.
 
 - [ ] Phase 5: Quotation Builder Form
