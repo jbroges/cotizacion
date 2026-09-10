@@ -40,6 +40,16 @@ export interface Quotation {
   items: QuotationItem[];
 }
 
+export interface QuotationSummary {
+  id: string;
+  clientId: string;
+  clientName: string;
+  subtotal: number;
+  totalVat: number;
+  grandTotal: number;
+  createdAt: string;
+}
+
 interface BackendAPI {
   GetSettings(): Promise<CompanySettings>;
   SaveSettings(settings: CompanySettings): Promise<void>;
@@ -48,6 +58,8 @@ interface BackendAPI {
   UpdateClient(client: Client): Promise<void>;
   DeleteClient(id: string): Promise<void>;
   CreateQuotation(request: CreateQuotationRequest): Promise<Quotation>;
+  GetQuotations(): Promise<QuotationSummary[]>;
+  DownloadQuotation(id: string): Promise<number[]>;
 }
 
 declare global {
@@ -70,4 +82,6 @@ export const appAPI = {
   updateClient: (client: Client) => backend().UpdateClient(client),
   deleteClient: (id: string) => backend().DeleteClient(id),
   createQuotation: (request: CreateQuotationRequest) => backend().CreateQuotation(request),
+  getQuotations: () => backend().GetQuotations(),
+  downloadQuotation: (id: string) => backend().DownloadQuotation(id),
 };

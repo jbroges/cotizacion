@@ -58,6 +58,17 @@ type Quotation struct {
 	Items       []QuotationItem `json:"items"`
 }
 
+// QuotationSummary contains the fields needed by the quotation list.
+type QuotationSummary struct {
+	ID         string  `json:"id"`
+	ClientID   string  `json:"clientId"`
+	ClientName string  `json:"clientName"`
+	Subtotal   float64 `json:"subtotal"`
+	TotalVAT   float64 `json:"totalVat"`
+	GrandTotal float64 `json:"grandTotal"`
+	CreatedAt  string  `json:"createdAt"`
+}
+
 // GetSettings returns the saved company settings, or defaults when none exist.
 func (db *DB) GetSettings(ctx context.Context) (CompanySettings, error) {
 	var settings CompanySettings
@@ -258,6 +269,69 @@ func (db *DB) CreateQuotation(ctx context.Context, request CreateQuotationReques
 		return Quotation{}, fmt.Errorf("commit quotation: %w", err)
 	}
 	return quotation, nil
+}
+
+// GetQuotation returns a quotation and all of its persisted line items.
+func (db *DB) GetQuotation(ctx context.Context, id string) (Quotation, error) {
+	if strings.TrimSpace(id) == "" {
+		return Quotation{}, errors.New("quotation ID is required")
+	}
+	var quotation Quotation
+	err := db.conn.QueryRowContext(ctx, `
+		SELECT id, client_id, subtotal, total_vat, grand_total, COALESCE(footer_notes, '')
+		FROM quotations WHERE id = ?`, id).Scan(
+		quotation.ID, &quotation.ClientID, &quotation.Subtotal, &quotation.TotalVAT,
+		quotation.GrandTotal, &quotation.FooterNotes)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Quotation{}, errors.New("quotation not found")
+		}
+		return Quotation{}, fmt.Errorf("get quotation: %w", err)
+	}
+	rows, err := db.conn.QueryContext(ctx, `
+		SELECT id, description, unit_price, vat_rate, subtotal
+		FROM quotation_items WHERE quotation_id = ? ORDER BY rowid`, id)
+	if err != nil {
+		return Quotation{}, fmt.Errorf("query quotation items: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var item QuotationItem
+		if err := rows.Scan(&item.ID, &item.Description, &item.UnitPrice, &item.VATRate, &item.Subtotal); err != nil {
+			return Quotation{}, fmt.Errorf("scan quotation item: %w", err)
+		}
+		quotation.Items = append(quotation.Items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return Quotation{}, fmt.Errorf("iterate quotation items: %w", err)
+	}
+	return quotation, nil
+}
+
+// GetQuotations returns quotations ordered from newest to oldest.
+func (db *DB) GetQuotations(ctx context.Context) ([]QuotationSummary, error) {
+	rows, err := db.conn.QueryContext(ctx, `
+		SELECT q.id, q.client_id, c.business_name, q.subtotal, q.total_vat,
+			q.grand_total, q.created_at
+		FROM quotations q JOIN clients c ON c.id = q.client_id
+		ORDER BY q.created_at DESC, q.id DESC`)
+	if err != nil {
+		return nil, fmt.Errorf("query quotations: %w", err)
+	}
+	defer rows.Close()
+	quotations := make([]QuotationSummary, 0)
+	for rows.Next() {
+		var quotation QuotationSummary
+		if err := rows.Scan(&quotation.ID, &quotation.ClientID, &quotation.ClientName,
+			&quotation.Subtotal, &quotation.TotalVAT, &quotation.GrandTotal, &quotation.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan quotation: %w", err)
+		}
+		quotations = append(quotations, quotation)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate quotations: %w", err)
+	}
+	return quotations, nil
 }
 
 func validMoney(value float64) bool {
