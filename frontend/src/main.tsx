@@ -6,6 +6,7 @@ import { DataTable, type DataTableColumn } from "./components/DataTable";
 import { Input } from "./components/Input";
 import { ClientsView } from "./modules/ClientsView";
 import { SettingsView } from "./modules/SettingsView";
+import { QuotationBuilder } from "./modules/QuotationBuilder";
 import "./styles.css";
 
 type Section = "Dashboard" | "Clients" | "Quotations" | "Settings";
@@ -49,7 +50,7 @@ function App() {
           <Button variant="primary" onClick={() => setSection("Quotations")}>New quotation</Button>
         </header>
         <div className="mx-auto max-w-7xl p-5 sm:p-8">
-          {section === "Dashboard" ? <Dashboard onNavigate={setSection} /> : section === "Clients" ? <ClientsView /> : section === "Settings" ? <SettingsView /> : <SectionPlaceholder section={section} />}
+          {section === "Dashboard" ? <Dashboard onNavigate={setSection} /> : section === "Clients" ? <ClientsView /> : section === "Settings" ? <SettingsView /> : <QuotationBuilder />}
         </div>
       </main>
     </div>

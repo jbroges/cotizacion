@@ -126,7 +126,7 @@ Configurar Tailwind CSS, layout principal (Sidebar + Main Content Area) y crear 
 - [x] Phase 4: Settings & Clients Modules
 Desarrollar el formulario de configuración empresarial (con soporte para subida de logo) y el CRUD completo del directorio de clientes en el frontend.
 
-- [ ] Phase 5: Quotation Builder Form
+- [x] Phase 5: Quotation Builder Form
 Construir el formulario de creación de cotización: integración del modal de búsqueda de clientes, lógica matemática de la tabla de rubros (cálculo de subtotales e IVA en tiempo real) y validaciones de estado.
 
 - [ ] Phase 6: PDF Generation Engine (Go)
