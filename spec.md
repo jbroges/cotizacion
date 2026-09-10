@@ -132,9 +132,9 @@ Construir el formulario de creación de cotización: integración del modal de b
 - [x] Phase 6: PDF Generation Engine (Go)
 Implementar la lógica de diseño del PDF utilizando una librería vectorial en Go (ej. gofpdf). Ajustar márgenes, membretes profesionales y desglose de la tabla.
 
-- [ ] Phase 7: System Integration & Export
+- [x] Phase 7: System Integration & Export
   - [x] Conectar el botón "Download PDF" con la lista de cotizaciones persistidas.
   - [x] Exponer la generación de PDF desde Go y entregar el archivo al cliente Wails para su guardado local.
   - [x] Validar los artefactos compilables del backend Go y del frontend React.
   - [x] Compilar el binario final para Windows mediante el CLI de Wails disponible en el entorno de distribución.
-  - [ ] Compilar el binario final para macOS mediante el CLI de Wails disponible en el entorno de distribución.
+  - [x] Compilar el binario final para macOS mediante el CLI de Wails disponible en el entorno de distribución.
