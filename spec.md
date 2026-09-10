@@ -136,4 +136,5 @@ Implementar la lógica de diseño del PDF utilizando una librería vectorial en 
   - [x] Conectar el botón "Download PDF" con la lista de cotizaciones persistidas.
   - [x] Exponer la generación de PDF desde Go y entregar el archivo al cliente Wails para su guardado local.
   - [x] Validar los artefactos compilables del backend Go y del frontend React.
-  - [ ] Compilar los binarios finales para Windows/macOS mediante el CLI de Wails disponible en el entorno de distribución.
+  - [x] Compilar el binario final para Windows mediante el CLI de Wails disponible en el entorno de distribución.
+  - [ ] Compilar el binario final para macOS mediante el CLI de Wails disponible en el entorno de distribución.
