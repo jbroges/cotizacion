@@ -1,0 +1,14 @@
+# Go build output
+/bin/
+/dist/
+node_modules/
+
+# Local application data
+*.db
+*.db-shm
+*.db-wal
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store

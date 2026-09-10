@@ -1,0 +1,12 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "x57Quote",
+  "outputfilename": "x57Quote",
+  "frontend": {
+    "dir": "frontend"
+  },
+  "author": {
+    "name": "x57Quote",
+    "email": ""
+  }
+}
