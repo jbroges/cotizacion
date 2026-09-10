@@ -129,7 +129,7 @@ Desarrollar el formulario de configuración empresarial (con soporte para subida
 - [x] Phase 5: Quotation Builder Form
 Construir el formulario de creación de cotización: integración del modal de búsqueda de clientes, lógica matemática de la tabla de rubros (cálculo de subtotales e IVA en tiempo real) y validaciones de estado.
 
-- [ ] Phase 6: PDF Generation Engine (Go)
+- [x] Phase 6: PDF Generation Engine (Go)
 Implementar la lógica de diseño del PDF utilizando una librería vectorial en Go (ej. gofpdf). Ajustar márgenes, membretes profesionales y desglose de la tabla.
 
 - [ ] Phase 7: System Integration & Export
