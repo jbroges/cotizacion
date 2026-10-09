@@ -30,6 +30,10 @@ export function GetClients() {
   return window['go']['app']['App']['GetClients']();
 }
 
+export function GetQuotation(arg1) {
+  return window['go']['app']['App']['GetQuotation'](arg1);
+}
+
 export function GetQuotations() {
   return window['go']['app']['App']['GetQuotations']();
 }

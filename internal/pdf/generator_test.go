@@ -35,3 +35,16 @@ func TestGenerateValidatesRequiredData(t *testing.T) {
 		t.Fatal("Generate() error = nil, want validation error")
 	}
 }
+
+func TestGenerateWithBase64Logo(t *testing.T) {
+	document := testDocument()
+	// 1x1 transparent PNG data URL
+	document.Issuer.LogoPath = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+	var output bytes.Buffer
+	if err := Generate(&output, document); err != nil {
+		t.Fatalf("Generate() with base64 logo error = %v", err)
+	}
+	if !bytes.HasPrefix(output.Bytes(), []byte("%PDF-")) {
+		t.Fatalf("output does not have a PDF header")
+	}
+}

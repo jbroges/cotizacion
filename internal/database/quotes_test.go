@@ -35,4 +35,12 @@ func TestQuotationBindingsPersistCalculatedTotals(t *testing.T) {
 	if len(clients) != 1 || clients[0].BusinessName != "Acme" {
 		t.Fatalf("unexpected clients: %#v", clients)
 	}
+
+	fetched, err := db.GetQuotation(context.Background(), quotation.ID)
+	if err != nil {
+		t.Fatalf("GetQuotation error: %v", err)
+	}
+	if fetched.ID != quotation.ID || fetched.GrandTotal != 116 || len(fetched.Items) != 1 {
+		t.Fatalf("unexpected fetched quotation: %#v", fetched)
+	}
 }

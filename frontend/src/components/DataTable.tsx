@@ -14,7 +14,7 @@ interface DataTableProps<T> {
   emptyMessage?: string;
 }
 
-export function DataTable<T>({ columns, rows, rowKey, emptyMessage = "No records found." }: DataTableProps<T>) {
+export function DataTable<T>({ columns, rows, rowKey, emptyMessage = "No se encontraron registros." }: DataTableProps<T>) {
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel">
       <div className="overflow-x-auto">

@@ -16,6 +16,8 @@ export function DownloadQuotation(arg1:string):Promise<Array<number>>;
 
 export function GetClients():Promise<Array<database.Client>>;
 
+export function GetQuotation(arg1:string):Promise<database.Quotation>;
+
 export function GetQuotations():Promise<Array<database.QuotationSummary>>;
 
 export function GetSettings():Promise<database.CompanySettings>;

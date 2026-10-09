@@ -280,8 +280,8 @@ func (db *DB) GetQuotation(ctx context.Context, id string) (Quotation, error) {
 	err := db.conn.QueryRowContext(ctx, `
 		SELECT id, client_id, subtotal, total_vat, grand_total, COALESCE(footer_notes, '')
 		FROM quotations WHERE id = ?`, id).Scan(
-		quotation.ID, &quotation.ClientID, &quotation.Subtotal, &quotation.TotalVAT,
-		quotation.GrandTotal, &quotation.FooterNotes)
+		&quotation.ID, &quotation.ClientID, &quotation.Subtotal, &quotation.TotalVAT,
+		&quotation.GrandTotal, &quotation.FooterNotes)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Quotation{}, errors.New("quotation not found")

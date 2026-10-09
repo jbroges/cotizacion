@@ -59,7 +59,8 @@ interface BackendAPI {
   DeleteClient(id: string): Promise<void>;
   CreateQuotation(request: CreateQuotationRequest): Promise<Quotation>;
   GetQuotations(): Promise<QuotationSummary[]>;
-  DownloadQuotation(id: string): Promise<number[]>;
+  GetQuotation(id: string): Promise<Quotation>;
+  DownloadQuotation(id: string): Promise<string | number[]>;
 }
 
 declare global {
@@ -83,5 +84,6 @@ export const appAPI = {
   deleteClient: (id: string) => backend().DeleteClient(id),
   createQuotation: (request: CreateQuotationRequest) => backend().CreateQuotation(request),
   getQuotations: () => backend().GetQuotations(),
+  getQuotation: (id: string) => backend().GetQuotation(id),
   downloadQuotation: (id: string) => backend().DownloadQuotation(id),
 };

@@ -53,6 +53,10 @@ func (a *App) GetQuotations() ([]QuotationSummary, error) {
 	return a.db.GetQuotations(context.Background())
 }
 
+func (a *App) GetQuotation(id string) (Quotation, error) {
+	return a.db.GetQuotation(context.Background(), id)
+}
+
 // DownloadQuotation renders a persisted quotation as a PDF byte slice for the
 // Wails frontend, leaving file selection to the native client.
 func (a *App) DownloadQuotation(id string) ([]byte, error) {

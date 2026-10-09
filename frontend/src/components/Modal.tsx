@@ -20,7 +20,7 @@ export function Modal({ open, onOpenChange, title, description, children }: Moda
           {description && <Dialog.Description className="mt-1 text-sm text-muted">{description}</Dialog.Description>}
           <div className="mt-5">{children}</div>
           <Dialog.Close className="absolute right-4 top-4 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-ink focus:outline-none focus:ring-2 focus:ring-brand-600">
-            <X size={18} aria-label="Close" />
+            <X size={18} aria-label="Cerrar" />
           </Dialog.Close>
         </Dialog.Content>
       </Dialog.Portal>
