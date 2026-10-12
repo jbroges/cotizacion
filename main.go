@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"log"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"x57quote/internal/app"
 )
@@ -56,6 +58,9 @@ func main() {
 		Title:  "x57Quote",
 		Width:  1280,
 		Height: 800,
+		OnStartup: func(ctx context.Context) {
+			runtime.WindowMaximise(ctx)
+		},
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

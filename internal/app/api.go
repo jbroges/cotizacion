@@ -53,13 +53,18 @@ func (a *App) GetQuotations() ([]QuotationSummary, error) {
 	return a.db.GetQuotations(context.Background())
 }
 
-func (a *App) GetQuotation(id string) (Quotation, error) {
+func (a *App) GetQuotation(id int64) (Quotation, error) {
 	return a.db.GetQuotation(context.Background(), id)
+}
+
+// UpdateQuotationStatus updates the status of a quotation.
+func (a *App) UpdateQuotationStatus(id int64, status string) error {
+	return a.db.UpdateQuotationStatus(context.Background(), id, status)
 }
 
 // DownloadQuotation renders a persisted quotation as a PDF byte slice for the
 // Wails frontend, leaving file selection to the native client.
-func (a *App) DownloadQuotation(id string) ([]byte, error) {
+func (a *App) DownloadQuotation(id int64) ([]byte, error) {
 	ctx := context.Background()
 	quotation, err := a.db.GetQuotation(ctx, id)
 	if err != nil {
@@ -85,7 +90,7 @@ func (a *App) DownloadQuotation(id string) ([]byte, error) {
 	}
 
 	document := pdf.Document{
-		Number: quotation.ID, Issuer: pdf.Issuer{
+		Number: fmt.Sprintf("%d", quotation.ID), Issuer: pdf.Issuer{
 			BusinessName: settings.BusinessName, TaxID: settings.TaxID,
 			Phone: settings.Phone, Address: settings.Address, LogoPath: settings.LogoPath,
 		},
@@ -99,8 +104,8 @@ func (a *App) DownloadQuotation(id string) ([]byte, error) {
 	document.Items = make([]pdf.Item, len(quotation.Items))
 	for i, item := range quotation.Items {
 		document.Items[i] = pdf.Item{
-			Description: item.Description, UnitPrice: item.UnitPrice,
-			VATRate: item.VATRate, Subtotal: item.Subtotal,
+			Description: item.Description, Quantity: item.Quantity, UnitPrice: item.UnitPrice,
+			VATRate: item.VATRate, ApplyVAT: item.ApplyVAT, Subtotal: item.Subtotal,
 		}
 	}
 	var output bytes.Buffer

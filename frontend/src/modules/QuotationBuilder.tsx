@@ -7,7 +7,7 @@ import { Modal } from "../components/Modal";
 import { money } from "../utils";
 
 type DraftItem = Omit<QuotationItem, "id" | "subtotal">;
-const newItem = (vatRate: number): DraftItem => ({ description: "", unitPrice: 0, vatRate });
+const newItem = (vatRate: number): DraftItem => ({ description: "", quantity: 1, unitPrice: 0, vatRate, applyVat: true });
 
 export function QuotationBuilder({ onSaved }: { onSaved?: () => void }) {
   const [clients, setClients] = useState<Client[]>([]);
@@ -40,8 +40,11 @@ export function QuotationBuilder({ onSaved }: { onSaved?: () => void }) {
     );
   }, [clients, clientSearch]);
 
-  const subtotal = items.reduce((sum, item) => sum + item.unitPrice, 0);
-  const totalVat = items.reduce((sum, item) => sum + (item.unitPrice * item.vatRate) / 100, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  const totalVat = items.reduce((sum, item) => {
+    if (!item.applyVat) return sum;
+    return sum + (item.quantity * item.unitPrice * item.vatRate) / 100;
+  }, 0);
   const grandTotal = subtotal + totalVat;
 
   function updateItem(index: number, field: keyof DraftItem, value: string) {
@@ -62,6 +65,7 @@ export function QuotationBuilder({ onSaved }: { onSaved?: () => void }) {
     setError("");
     if (!client) return setError("Seleccione un cliente antes de guardar.");
     if (items.some((item) => !item.description.trim())) return setError("Cada artículo o servicio requiere una descripción.");
+    if (items.some((item) => !Number.isFinite(item.quantity) || item.quantity <= 0)) return setError("La cantidad debe ser mayor a cero.");
     if (items.some((item) => !Number.isFinite(item.unitPrice) || item.unitPrice < 0)) return setError("El precio unitario debe ser mayor o igual a cero.");
     if (items.some((item) => !Number.isFinite(item.vatRate) || item.vatRate < 0 || item.vatRate > 100)) return setError("La tasa de IVA debe estar entre 0 y 100.");
 
@@ -70,7 +74,7 @@ export function QuotationBuilder({ onSaved }: { onSaved?: () => void }) {
       await appAPI.createQuotation({
         clientId: client.id,
         footerNotes,
-        items: items.map((item) => ({ ...item, id: "", subtotal: item.unitPrice })),
+        items: items.map((item) => ({ ...item, id: "", subtotal: item.quantity * item.unitPrice })),
       });
       onSaved?.();
     } catch (reason) {
@@ -124,12 +128,19 @@ export function QuotationBuilder({ onSaved }: { onSaved?: () => void }) {
         </div>
         <div className="space-y-3">
           {items.map((item, index) => (
-            <div className="grid gap-3 rounded-lg border border-slate-100 p-3 md:grid-cols-[minmax(0,1fr)_9rem_7rem_8rem_auto]" key={index}>
-              <Input aria-label={`Descripción del artículo ${index + 1}`} placeholder="Descripción del producto o servicio" value={item.description} onChange={(event) => updateItem(index, "description", event.target.value)} />
-              <Input aria-label={`Precio unitario del artículo ${index + 1}`} type="number" min="0" step="0.01" placeholder="Precio unitario" value={item.unitPrice} onChange={(event) => updateItem(index, "unitPrice", event.target.value)} />
-              <Input aria-label={`% IVA del artículo ${index + 1}`} type="number" min="0" max="100" step="0.01" placeholder="% IVA" value={item.vatRate} onChange={(event) => updateItem(index, "vatRate", event.target.value)} />
-              <div className="flex items-center justify-end text-sm font-semibold text-ink">{money.format(item.unitPrice)}</div>
-              <Button variant="danger" aria-label={`Eliminar artículo ${index + 1}`} onClick={() => removeItem(index)} disabled={items.length === 1}>
+            <div className="grid gap-3 rounded-lg border border-slate-100 p-3 md:grid-cols-[5rem_minmax(0,1fr)_8rem_5rem_6rem_auto_auto]" key={index}>
+              <Input aria-label={`Cantidad ${index + 1}`} type="number" min="0.1" step="1" value={item.quantity} onChange={(event) => updateItem(index, "quantity", event.target.value)} />
+              <Input aria-label={`Descripción ${index + 1}`} placeholder="Descripción del producto o servicio" value={item.description} onChange={(event) => updateItem(index, "description", event.target.value)} />
+              <Input aria-label={`Precio unitario ${index + 1}`} type="number" min="0" step="0.01" placeholder="Precio U." value={item.unitPrice} onChange={(event) => updateItem(index, "unitPrice", event.target.value)} />
+              <Input aria-label={`% IVA ${index + 1}`} type="number" min="0" max="100" step="0.01" placeholder="% IVA" value={item.vatRate} onChange={(event) => updateItem(index, "vatRate", event.target.value)} />
+              <label className="flex items-center gap-1 text-xs font-medium text-slate-600">
+                <input type="checkbox" checked={item.applyVat} onChange={(e) => updateItem(index, "applyVat", e.target.checked ? 1 : 0)} />
+                IVA
+              </label>
+              <div className="flex items-center justify-end text-sm font-semibold text-ink">
+                {money.format(item.quantity * item.unitPrice)}
+              </div>
+              <Button variant="danger" onClick={() => removeItem(index)} disabled={items.length === 1}>
                 <Trash2 size={16} />
               </Button>
             </div>

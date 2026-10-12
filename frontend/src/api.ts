@@ -5,6 +5,7 @@ export interface CompanySettings {
   address: string;
   logoPath: string;
   defaultVatRate: number;
+  quotationExpirationHours: number;
 }
 
 export interface Client {
@@ -19,8 +20,10 @@ export interface Client {
 export interface QuotationItem {
   id: string;
   description: string;
+  quantity: number;
   unitPrice: number;
   vatRate: number;
+  applyVat: boolean;
   subtotal: number;
 }
 
@@ -31,22 +34,25 @@ export interface CreateQuotationRequest {
 }
 
 export interface Quotation {
-  id: string;
+  id: number;
   clientId: string;
   subtotal: number;
   totalVat: number;
   grandTotal: number;
+  status: "pending" | "approved" | "rejected" | "cancelled" | "expired";
   footerNotes: string;
   items: QuotationItem[];
+  createdAt: string;
 }
 
 export interface QuotationSummary {
-  id: string;
+  id: number;
   clientId: string;
   clientName: string;
   subtotal: number;
   totalVat: number;
   grandTotal: number;
+  status: "pending" | "approved" | "rejected" | "cancelled" | "expired";
   createdAt: string;
 }
 
@@ -59,8 +65,9 @@ interface BackendAPI {
   DeleteClient(id: string): Promise<void>;
   CreateQuotation(request: CreateQuotationRequest): Promise<Quotation>;
   GetQuotations(): Promise<QuotationSummary[]>;
-  GetQuotation(id: string): Promise<Quotation>;
-  DownloadQuotation(id: string): Promise<string | number[]>;
+  GetQuotation(id: number): Promise<Quotation>;
+  DownloadQuotation(id: number): Promise<string | number[]>;
+  UpdateQuotationStatus(id: number, status: string): Promise<void>;
 }
 
 declare global {
@@ -84,6 +91,7 @@ export const appAPI = {
   deleteClient: (id: string) => backend().DeleteClient(id),
   createQuotation: (request: CreateQuotationRequest) => backend().CreateQuotation(request),
   getQuotations: () => backend().GetQuotations(),
-  getQuotation: (id: string) => backend().GetQuotation(id),
-  downloadQuotation: (id: string) => backend().DownloadQuotation(id),
+  getQuotation: (id: number) => backend().GetQuotation(id),
+  downloadQuotation: (id: number) => backend().DownloadQuotation(id),
+  updateQuotationStatus: (id: number, status: string) => backend().UpdateQuotationStatus(id, status),
 };

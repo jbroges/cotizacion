@@ -5,7 +5,7 @@ import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 
 const emptySettings: CompanySettings = {
-  businessName: "", taxId: "", phone: "", address: "", logoPath: "", defaultVatRate: 16,
+  businessName: "", taxId: "", phone: "", address: "", logoPath: "", defaultVatRate: 16, quotationExpirationHours: 72,
 };
 
 export function SettingsView() {
@@ -51,6 +51,7 @@ export function SettingsView() {
           <Input label="Identificación Fiscal (RUT/NIF/RFC/CIF) *" value={settings.taxId} onChange={(event) => update("taxId", event.target.value)} />
           <Input label="Teléfono" value={settings.phone} onChange={(event) => update("phone", event.target.value)} />
           <Input label="Tasa de IVA por defecto (%)" type="number" min="0" max="100" step="0.01" value={settings.defaultVatRate} onChange={(event) => update("defaultVatRate", Number(event.target.value))} />
+          <Input label="Horas para expiración de cotizaciones" type="number" min="1" step="1" value={settings.quotationExpirationHours} onChange={(event) => update("quotationExpirationHours", Number(event.target.value))} />
           <label className="space-y-1.5 sm:col-span-2">
             <span className="text-sm font-medium text-slate-700">Dirección</span>
             <textarea className="block min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/15" placeholder="Dirección fiscal o comercial..." value={settings.address} onChange={(event) => update("address", event.target.value)} />

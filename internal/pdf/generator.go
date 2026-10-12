@@ -50,8 +50,10 @@ type Client struct {
 
 type Item struct {
 	Description string
+	Quantity    float64
 	UnitPrice   float64
 	VATRate     float64
+	ApplyVAT    bool
 	Subtotal    float64
 }
 
@@ -129,8 +131,8 @@ func validate(document Document) error {
 		if strings.TrimSpace(item.Description) == "" {
 			return fmt.Errorf("quotation item %d description is required", index+1)
 		}
-		if !finite(item.UnitPrice) || !finite(item.Subtotal) || !finite(item.VATRate) ||
-			item.UnitPrice < 0 || item.Subtotal < 0 || item.VATRate < 0 || item.VATRate > 100 {
+		if !finite(item.UnitPrice) || !finite(item.Subtotal) || !finite(item.VATRate) || !finite(item.Quantity) ||
+			item.UnitPrice < 0 || item.Subtotal < 0 || item.VATRate < 0 || item.VATRate > 100 || item.Quantity < 0 {
 			return fmt.Errorf("quotation item %d contains invalid amounts", index+1)
 		}
 	}
@@ -289,9 +291,14 @@ func drawItems(pdf *fpdf.Fpdf, items []Item, startY float64) {
 		}
 		pdf.SetFont("Helvetica", "", 9)
 		pdf.SetTextColor(45, 45, 45)
-		pdf.CellFormat(91, 8, tr(item.Description), "B", 0, "L", false, 0, "")
+		pdf.CellFormat(15, 8, fmt.Sprintf("%.2f", item.Quantity), "B", 0, "C", false, 0, "")
+		pdf.CellFormat(76, 8, tr(item.Description), "B", 0, "L", false, 0, "")
 		pdf.CellFormat(25, 8, money(item.UnitPrice), "B", 0, "R", false, 0, "")
-		pdf.CellFormat(18, 8, percent(item.VATRate), "B", 0, "R", false, 0, "")
+		vatText := percent(item.VATRate)
+		if !item.ApplyVAT {
+			vatText = "Exento"
+		}
+		pdf.CellFormat(18, 8, vatText, "B", 0, "R", false, 0, "")
 		pdf.CellFormat(40, 8, money(item.Subtotal), "B", 1, "R", false, 0, "")
 	}
 }
@@ -301,8 +308,9 @@ func drawTableHeader(pdf *fpdf.Fpdf) {
 	pdf.SetFillColor(headerColor, headerColor, headerColor)
 	pdf.SetTextColor(255, 255, 255)
 	pdf.SetFont("Helvetica", "B", 8.5)
-	pdf.CellFormat(91, 8, tr("DESCRIPCIÓN"), "", 0, "L", true, 0, "")
-	pdf.CellFormat(25, 8, tr("PRECIO UNITARIO"), "", 0, "R", true, 0, "")
+	pdf.CellFormat(15, 8, tr("CANT"), "", 0, "C", true, 0, "")
+	pdf.CellFormat(76, 8, tr("DESCRIPCIÓN"), "", 0, "L", true, 0, "")
+	pdf.CellFormat(25, 8, tr("PRECIO U."), "", 0, "R", true, 0, "")
 	pdf.CellFormat(18, 8, tr("IVA"), "", 0, "R", true, 0, "")
 	pdf.CellFormat(40, 8, tr("SUBTOTAL"), "", 1, "R", true, 0, "")
 }
