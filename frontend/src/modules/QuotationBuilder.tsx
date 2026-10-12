@@ -47,10 +47,13 @@ export function QuotationBuilder({ onSaved }: { onSaved?: () => void }) {
   }, 0);
   const grandTotal = subtotal + totalVat;
 
-  function updateItem(index: number, field: keyof DraftItem, value: string) {
-    setItems((current) => current.map((item, itemIndex) => itemIndex === index
-      ? { ...item, [field]: field === "description" ? value : Number(value) }
-      : item));
+  function updateItem(index: number, field: keyof DraftItem, value: string | number | boolean) {
+    setItems((current) => current.map((item, itemIndex) => {
+      if (itemIndex !== index) return item;
+      if (field === "description") return { ...item, [field]: value as string };
+      if (field === "applyVat") return { ...item, applyVat: Boolean(value) };
+      return { ...item, [field]: Number(value) };
+    }));
   }
 
   function addItem() {
@@ -134,7 +137,7 @@ export function QuotationBuilder({ onSaved }: { onSaved?: () => void }) {
               <Input aria-label={`Precio unitario ${index + 1}`} type="number" min="0" step="0.01" placeholder="Precio U." value={item.unitPrice} onChange={(event) => updateItem(index, "unitPrice", event.target.value)} />
               <Input aria-label={`% IVA ${index + 1}`} type="number" min="0" max="100" step="0.01" placeholder="% IVA" value={item.vatRate} onChange={(event) => updateItem(index, "vatRate", event.target.value)} />
               <label className="flex items-center gap-1 text-xs font-medium text-slate-600">
-                <input type="checkbox" checked={item.applyVat} onChange={(e) => updateItem(index, "applyVat", e.target.checked ? 1 : 0)} />
+                <input type="checkbox" checked={item.applyVat} onChange={(e) => updateItem(index, "applyVat", e.target.checked)} />
                 IVA
               </label>
               <div className="flex items-center justify-end text-sm font-semibold text-ink">

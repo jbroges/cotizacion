@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -304,6 +303,18 @@ func (db *DB) GetQuotation(ctx context.Context, id int64) (Quotation, error) {
 	if id <= 0 {
 		return Quotation{}, errors.New("quotation ID is required")
 	}
+
+	// Expire this quotation if it is overdue, before reading it. Using a direct
+	// SQL UPDATE avoids nested connection use (which deadlocks on MaxOpenConns=1).
+	_, _ = db.conn.ExecContext(ctx, `
+		UPDATE quotations
+		SET status = 'expired'
+		WHERE id = ? AND status = 'pending'
+		AND datetime(created_at, '+' || (
+			SELECT COALESCE(quotation_expiration_hours, 72)
+			FROM company_settings WHERE id = 1
+		) || ' hours') < datetime('now')`, id)
+
 	var quotation Quotation
 	err := db.conn.QueryRowContext(ctx, `
 		SELECT id, client_id, subtotal, total_vat, grand_total, status, COALESCE(footer_notes, ''), created_at
@@ -315,17 +326,6 @@ func (db *DB) GetQuotation(ctx context.Context, id int64) (Quotation, error) {
 			return Quotation{}, errors.New("quotation not found")
 		}
 		return Quotation{}, fmt.Errorf("get quotation: %w", err)
-	}
-
-	// Auto-expire pending quotations
-	if quotation.Status == "pending" {
-		if err := db.maybeExpireQuotation(ctx, quotation.ID, quotation.CreatedAt); err != nil {
-			return Quotation{}, err
-		}
-		// Re-fetch status if it was updated
-		if err := db.conn.QueryRowContext(ctx, `SELECT status FROM quotations WHERE id = ?`, id).Scan(&quotation.Status); err != nil {
-			return Quotation{}, fmt.Errorf("refresh quotation status: %w", err)
-		}
 	}
 
 	rows, err := db.conn.QueryContext(ctx, `
@@ -348,8 +348,22 @@ func (db *DB) GetQuotation(ctx context.Context, id int64) (Quotation, error) {
 	return quotation, nil
 }
 
+
 // GetQuotations returns quotations ordered from newest to oldest.
+// Before querying, it runs a single bulk UPDATE to expire all pending quotations
+// that have exceeded the configured expiration window. This avoids nested queries
+// inside the row cursor which would deadlock on a single-connection SQLite pool.
 func (db *DB) GetQuotations(ctx context.Context) ([]QuotationSummary, error) {
+	// Expire all overdue pending quotations atomically before opening the cursor.
+	_, _ = db.conn.ExecContext(ctx, `
+		UPDATE quotations
+		SET status = 'expired'
+		WHERE status = 'pending'
+		AND datetime(created_at, '+' || (
+			SELECT COALESCE(quotation_expiration_hours, 72)
+			FROM company_settings WHERE id = 1
+		) || ' hours') < datetime('now')`)
+
 	rows, err := db.conn.QueryContext(ctx, `
 		SELECT q.id, q.client_id, c.business_name, q.subtotal, q.total_vat,
 			q.grand_total, q.status, q.created_at
@@ -366,18 +380,6 @@ func (db *DB) GetQuotations(ctx context.Context) ([]QuotationSummary, error) {
 			&quotation.Subtotal, &quotation.TotalVAT, &quotation.GrandTotal, &quotation.Status, &quotation.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan quotation: %w", err)
 		}
-
-		// Auto-expire pending quotations
-		if quotation.Status == "pending" {
-			if err := db.maybeExpireQuotation(ctx, quotation.ID, quotation.CreatedAt); err != nil {
-				return nil, err
-			}
-			// Re-fetch status if it was updated
-			if err := db.conn.QueryRowContext(ctx, `SELECT status FROM quotations WHERE id = ?`, quotation.ID).Scan(&quotation.Status); err != nil {
-				return nil, fmt.Errorf("refresh quotation status: %w", err)
-			}
-		}
-
 		quotations = append(quotations, quotation)
 	}
 	if err := rows.Err(); err != nil {
@@ -417,25 +419,3 @@ func (db *DB) UpdateQuotationStatus(ctx context.Context, id int64, status string
 	return nil
 }
 
-// maybeExpireQuotation checks if a pending quotation has expired and updates its status.
-func (db *DB) maybeExpireQuotation(ctx context.Context, id int64, createdAtStr string) error {
-	settings, err := db.GetSettings(ctx)
-	if err != nil {
-		return fmt.Errorf("load settings for expiration check: %w", err)
-	}
-	createdAt, err := time.Parse(time.RFC3339, createdAtStr)
-	if err != nil {
-		// Try alternative format
-		createdAt, err = time.Parse("2006-01-02 15:04:05", createdAtStr)
-		if err != nil {
-			return nil // If we can't parse the date, skip expiration check
-		}
-	}
-	expirationDuration := time.Duration(settings.QuotationExpirationHours) * time.Hour
-	if time.Since(createdAt) > expirationDuration {
-		if err := db.UpdateQuotationStatus(ctx, id, "expired"); err != nil {
-			return fmt.Errorf("expire quotation: %w", err)
-		}
-	}
-	return nil
-}

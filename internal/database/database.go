@@ -31,8 +31,16 @@ func Open(path string) (*DB, error) {
 		return nil, fmt.Errorf("open SQLite connection: %w", err)
 	}
 
-	conn.SetMaxOpenConns(1)
-	conn.SetMaxIdleConns(1)
+	// Allow up to 5 concurrent connections. Nested-query deadlocks have been
+	// eliminated by using bulk UPDATE statements instead of per-row sub-queries,
+	// so multiple goroutines can safely share the pool. WAL mode enables
+	// concurrent reads alongside writes without blocking.
+	conn.SetMaxOpenConns(5)
+	conn.SetMaxIdleConns(5)
+	if _, err := conn.Exec(`PRAGMA journal_mode = WAL`); err != nil {
+		_ = conn.Close()
+		return nil, fmt.Errorf("enable SQLite WAL mode: %w", err)
+	}
 	if _, err := conn.Exec(`PRAGMA foreign_keys = ON`); err != nil {
 		_ = conn.Close()
 		return nil, fmt.Errorf("enable SQLite foreign keys: %w", err)
