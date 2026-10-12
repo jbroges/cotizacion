@@ -124,6 +124,18 @@ CREATE TABLE IF NOT EXISTS quotation_items (
 		return fmt.Errorf("apply initial database schema: %w", err)
 	}
 
+	// Defensive ALTER TABLEs for existing databases that may be missing new columns.
+	// These are idempotent-ish: SQLite returns error if column exists, we ignore those specific errors.
+	defensiveAlters := []string{
+		`ALTER TABLE company_settings ADD COLUMN quotation_expiration_hours INTEGER NOT NULL DEFAULT 72`,
+		`ALTER TABLE quotations ADD COLUMN status TEXT NOT NULL DEFAULT 'pending'`,
+		`ALTER TABLE quotation_items ADD COLUMN quantity REAL NOT NULL DEFAULT 1.0`,
+		`ALTER TABLE quotation_items ADD COLUMN apply_vat BOOLEAN NOT NULL DEFAULT 1`,
+	}
+	for _, alter := range defensiveAlters {
+		_, _ = tx.Exec(alter) // Ignore errors (e.g., "duplicate column name")
+	}
+
 	// Migration version 1: initial schema
 	var applied bool
 	err = tx.QueryRow(`SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = 1)`).Scan(&applied)
@@ -136,7 +148,7 @@ CREATE TABLE IF NOT EXISTS quotation_items (
 		}
 	}
 
-	// Migration version 2: change quotation ID from TEXT to INTEGER
+	// Migration version 2: change quotation ID from TEXT to INTEGER (for very old DBs with UUID)
 	err = tx.QueryRow(`SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = 2)`).Scan(&applied)
 	if err != nil {
 		return fmt.Errorf("check migration v2: %w", err)
@@ -165,7 +177,7 @@ CREATE TABLE IF NOT EXISTS quotation_items (
 		// For existing data, we'll assign new sequential IDs
 		_, err = tx.Exec(`
 			INSERT INTO quotations_new (client_id, subtotal, total_vat, grand_total, status, footer_notes, created_at)
-			SELECT client_id, subtotal, total_vat, grand_total, status, footer_notes, created_at
+			SELECT client_id, subtotal, total_vat, grand_total, COALESCE(status, 'pending'), footer_notes, created_at
 			FROM quotations;
 		`)
 		if err != nil {
