@@ -114,3 +114,23 @@ func (a *App) DownloadQuotation(id int64) ([]byte, error) {
 	}
 	return output.Bytes(), nil
 }
+
+// LicenseStatus represents the result of a license check.
+type LicenseStatus struct {
+	Valid bool   `json:"valid"`
+	HWID  string `json:"hwid"`
+}
+
+// CheckLicense verifies if the current hardware is licensed.
+func (a *App) CheckLicense() (LicenseStatus, error) {
+	valid, hwid, err := a.db.CheckLicense(context.Background())
+	if err != nil {
+		return LicenseStatus{}, err
+	}
+	return LicenseStatus{Valid: valid, HWID: hwid}, nil
+}
+
+// ActivateLicense activates the license for the current hardware using the provided key.
+func (a *App) ActivateLicense(key string) error {
+	return a.db.ActivateLicense(context.Background(), key)
+}

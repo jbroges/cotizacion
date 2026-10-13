@@ -6,6 +6,7 @@ import {
   Download,
   Eye,
   FileText,
+  Key,
   LayoutDashboard,
   Menu,
   Plus,
@@ -13,9 +14,10 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { appAPI, type Client, type Quotation, type QuotationSummary } from "./api";
+import { appAPI, type Client, type LicenseStatus, type Quotation, type QuotationSummary } from "./api";
 import { Button } from "./components/Button";
 import { DataTable, type DataTableColumn } from "./components/DataTable";
+import { Input } from "./components/Input";
 import { Modal } from "./components/Modal";
 import { ClientsView } from "./modules/ClientsView";
 import { QuotationBuilder } from "./modules/QuotationBuilder";
@@ -37,6 +39,85 @@ function App() {
   const [section, setSection] = useState<Section>("Panel");
   const [creatingQuotation, setCreatingQuotation] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [licensed, setLicensed] = useState<boolean | null>(null);
+  const [hwid, setHwid] = useState("");
+  const [keyInput, setKeyInput] = useState("");
+  const [licenseError, setLicenseError] = useState("");
+  const [licenseLoading, setLicenseLoading] = useState(false);
+
+  useEffect(() => {
+    appAPI.checkLicense()
+      .then((res) => {
+        setLicensed(res.valid);
+        setHwid(res.hwid);
+      })
+      .catch(() => setLicensed(false));
+  }, []);
+
+  async function handleActivate() {
+    setLicenseError("");
+    setLicenseLoading(true);
+    try {
+      await appAPI.activateLicense(keyInput);
+      setLicensed(true);
+    } catch (err) {
+      setLicenseError(err instanceof Error ? err.message : "Clave inválida");
+    } finally {
+      setLicenseLoading(false);
+    }
+  }
+
+  // Show loading while checking license
+  if (licensed === null) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-3 border-brand-600 border-t-transparent mx-auto"></div>
+          <p className="mt-4 text-sm text-muted">Verificando licencia del equipo...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show activation screen if not licensed
+  if (!licensed) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-900 p-4">
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl space-y-6">
+          <div className="text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-brand-100">
+              <Key className="h-7 w-7 text-brand-600" />
+            </div>
+            <h2 className="mt-4 text-xl font-bold text-ink">Activación de Software</h2>
+            <p className="mt-2 text-sm text-muted">Este equipo no está autorizado o el programa fue cambiado de PC.</p>
+          </div>
+
+          <div className="rounded-lg bg-slate-50 p-3 text-xs">
+            <span className="font-semibold text-slate-700">Hardware ID de este equipo:</span>
+            <code className="mt-1 block select-all font-mono text-brand-600 break-all">{hwid}</code>
+          </div>
+
+          <div className="space-y-4">
+            <Input
+              label="Clave de producto"
+              type="password"
+              placeholder="Ingrese la clave..."
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+            />
+            {licenseError && <p className="text-xs text-red-600 text-center">{licenseError}</p>}
+            <Button className="w-full" onClick={() => void handleActivate()} disabled={licenseLoading}>
+              {licenseLoading ? "Validando..." : "Activar Licencia"}
+            </Button>
+          </div>
+
+          <p className="text-center text-xs text-muted">
+            Clave de activación: <code className="font-mono">Asd15140..</code>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen">

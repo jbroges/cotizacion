@@ -56,6 +56,11 @@ export interface QuotationSummary {
   createdAt: string;
 }
 
+export interface LicenseStatus {
+  valid: boolean;
+  hwid: string;
+}
+
 interface BackendAPI {
   GetSettings(): Promise<CompanySettings>;
   SaveSettings(settings: CompanySettings): Promise<void>;
@@ -68,6 +73,8 @@ interface BackendAPI {
   GetQuotation(id: number): Promise<Quotation>;
   DownloadQuotation(id: number): Promise<string | number[]>;
   UpdateQuotationStatus(id: number, status: string): Promise<void>;
+  CheckLicense(): Promise<LicenseStatus>;
+  ActivateLicense(key: string): Promise<void>;
 }
 
 declare global {
@@ -94,4 +101,6 @@ export const appAPI = {
   getQuotation: (id: number) => backend().GetQuotation(id),
   downloadQuotation: (id: number) => backend().DownloadQuotation(id),
   updateQuotationStatus: (id: number, status: string) => backend().UpdateQuotationStatus(id, status),
+  checkLicense: () => backend().CheckLicense(),
+  activateLicense: (key: string) => backend().ActivateLicense(key),
 };

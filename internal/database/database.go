@@ -1,11 +1,16 @@
 package database
 
 import (
+	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -115,6 +120,12 @@ CREATE TABLE IF NOT EXISTS quotation_items (
     apply_vat BOOLEAN NOT NULL DEFAULT 1,
     subtotal REAL NOT NULL,
     FOREIGN KEY (quotation_id) REFERENCES quotations (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS app_license (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    hwid TEXT NOT NULL,
+    activated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 `
 
@@ -243,4 +254,76 @@ CREATE TABLE IF NOT EXISTS quotation_items (
 		return fmt.Errorf("commit database migration: %w", err)
 	}
 	return nil
+}
+
+// GetHardwareID generates a unique hash based on the CPU or motherboard serial.
+func GetHardwareID() string {
+	var id string
+
+	// Try to get CPU ProcessorId
+	cmd := exec.Command("wmic", "cpu", "get", "ProcessorId")
+	if out, err := cmd.Output(); err == nil {
+		id = parseWmicOutput(string(out))
+	}
+
+	// Fallback to motherboard serial number
+	if id == "" {
+		cmdBoard := exec.Command("wmic", "baseboard", "get", "serialnumber")
+		if outBoard, err := cmdBoard.Output(); err == nil {
+			id = parseWmicOutput(string(outBoard))
+		}
+	}
+
+	// Static fallback if both fail
+	if id == "" {
+		id = "STATIC-FALLBACK-HWID-X57"
+	}
+
+	// Generate SHA-256 hash and return first 16 bytes as hex
+	hash := sha256.Sum256([]byte(id))
+	return hex.EncodeToString(hash[:16])
+}
+
+// parseWmicOutput extracts the value from wmic output (skips header line).
+// wmic output format: "Header\r\nValue\r\n\r\n" or "Header\r\nValue\r\n"
+func parseWmicOutput(output string) string {
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.Contains(strings.ToLower(line), "processorid") && !strings.Contains(strings.ToLower(line), "serialnumber") {
+			return line
+		}
+	}
+	return ""
+}
+
+// CheckLicense verifies if the current hardware is licensed.
+func (db *DB) CheckLicense(ctx context.Context) (bool, string, error) {
+	currentHWID := GetHardwareID()
+	var storedHWID string
+	err := db.conn.QueryRowContext(ctx, `SELECT hwid FROM app_license WHERE id = 1`).Scan(&storedHWID)
+	if err != nil {
+		// No license record found
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, currentHWID, nil
+		}
+		return false, currentHWID, err
+	}
+	// Valid if stored HWID matches current HWID
+	return storedHWID == currentHWID, currentHWID, nil
+}
+
+// ActivateLicense stores the current HWID as licensed after validating the key.
+func (db *DB) ActivateLicense(ctx context.Context, key string) error {
+	const expectedKey = "Asd15140.."
+	if key != expectedKey {
+		return errors.New("clave de activación incorrecta")
+	}
+	currentHWID := GetHardwareID()
+	_, err := db.conn.ExecContext(ctx, `
+		INSERT INTO app_license (id, hwid, activated_at)
+		VALUES (1, ?, CURRENT_TIMESTAMP)
+		ON CONFLICT(id) DO UPDATE SET hwid = excluded.hwid, activated_at = CURRENT_TIMESTAMP`,
+		currentHWID)
+	return err
 }
